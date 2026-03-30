@@ -2,10 +2,16 @@ from datetime import datetime, timedelta
 import argparse
 import pandas as pd
 import os
+import sys
 
 
-INPUT_BASE = "input"
-OUTPUT_BASE = "output"
+if getattr(sys, "frozen", False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+INPUT_BASE = os.path.join(BASE_DIR, "input")
+OUTPUT_BASE = os.path.join(BASE_DIR, "output")
 PARENT_FILENAME = "parent_absences.xlsx"
 OUTPUT_FILE_PREFIX = "PersonAbsenceEntry"
 
