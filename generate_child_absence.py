@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import os
 import sys
+import zipfile
 
 
 if getattr(sys, "frozen", False):
@@ -117,15 +118,20 @@ class AbsenceProcessor:
             records.append([child_row[col] for col in self.OUTPUT_COLUMNS])
         return records
 
-    def _write_records(self, records: list[list], dat_file: str, xlsx_file: str):
-        """Write records to both .dat and .xlsx files."""
+    def _build_dat_content(self, records: list[list]) -> str:
+        """Build pipe-delimited dat content as a string."""
         def clean(v):
             return "" if str(v) == "nan" else str(v)
+        return "\r\n".join("|".join(clean(v) for v in record) for record in records) + "\r\n"
 
-        with open(dat_file, "w", newline="\r\n") as f:
-            for record in records:
-                f.write("|".join(clean(v) for v in record) + "\n")
-        print(f"Saved {dat_file}")
+    def _write_records(self, records: list[list], folder_name: str, dat_folder: str, xlsx_file: str):
+        """Write records to zip (.dat inside) and .xlsx files."""
+        dat_content = self._build_dat_content(records)
+
+        zip_file = os.path.join(dat_folder, "PersonAbsenceEntry.zip")
+        with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("PersonAbsenceEntry.dat", dat_content)
+        print(f"Saved {zip_file}")
 
         pd.DataFrame(records).replace("nan", "").to_excel(xlsx_file, index=False, header=False)
         print(f"Saved {xlsx_file}")
@@ -136,12 +142,15 @@ class AbsenceProcessor:
 
         for part, chunk in enumerate(chunks, start=1):
             suffix = f"_{part}" if len(chunks) > 1 else ""
-            filename = f"{OUTPUT_FILE_PREFIX}_{assignment_number}{suffix}"
+            folder_name = f"{OUTPUT_FILE_PREFIX}_{assignment_number}{suffix}"
             records = self._build_output_records(row, chunk)
 
-            dat_file = os.path.join(self.output_dir_dat, f"{filename}.dat")
-            xlsx_file = os.path.join(self.output_dir_xlsx, f"{filename}.xlsx")
-            self._write_records(records, dat_file, xlsx_file)
+            # Create a subfolder named after the file
+            dat_folder = os.path.join(self.output_dir_dat, folder_name)
+            os.makedirs(dat_folder, exist_ok=True)
+
+            xlsx_file = os.path.join(self.output_dir_xlsx, f"{folder_name}.xlsx")
+            self._write_records(records, folder_name, dat_folder, xlsx_file)
 
     def run(self):
         """Read the parent file and generate child absence files."""
