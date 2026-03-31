@@ -14,6 +14,7 @@ INPUT_BASE = os.path.join(BASE_DIR, "input")
 OUTPUT_BASE = os.path.join(BASE_DIR, "output")
 PARENT_FILENAME = "parent_absences.xlsx"
 OUTPUT_FILE_PREFIX = "PersonAbsenceEntry"
+MAX_CHILD_ROWS = 90
 
 
 class AbsenceProcessor:
@@ -113,23 +114,31 @@ class AbsenceProcessor:
             records.append([child_row[col] for col in self.OUTPUT_COLUMNS])
         return records
 
-    def _save_child_file(self, row, assignment_number: str, child_rows: list[dict]):
-        """Write child rows as both a pipe-delimited .dat and an .xlsx file."""
-        filename = f"{OUTPUT_FILE_PREFIX}_{assignment_number}"
-        records = self._build_output_records(row, child_rows)
-
+    def _write_records(self, records: list[list], dat_file: str, xlsx_file: str):
+        """Write records to both .dat and .xlsx files."""
         def clean(v):
             return "" if str(v) == "nan" else str(v)
 
-        dat_file = os.path.join(self.output_dir_dat, f"{filename}.dat")
         with open(dat_file, "w") as f:
             for record in records:
                 f.write("|".join(clean(v) for v in record) + "\n")
         print(f"Saved {dat_file}")
 
-        xlsx_file = os.path.join(self.output_dir_xlsx, f"{filename}.xlsx")
         pd.DataFrame(records).replace("nan", "").to_excel(xlsx_file, index=False, header=False)
         print(f"Saved {xlsx_file}")
+
+    def _save_child_file(self, row, assignment_number: str, child_rows: list[dict]):
+        """Write child rows split into chunks of MAX_CHILD_ROWS, one file per chunk."""
+        chunks = [child_rows[i:i + MAX_CHILD_ROWS] for i in range(0, len(child_rows), MAX_CHILD_ROWS)]
+
+        for part, chunk in enumerate(chunks, start=1):
+            suffix = f"_{part}" if len(chunks) > 1 else ""
+            filename = f"{OUTPUT_FILE_PREFIX}_{assignment_number}{suffix}"
+            records = self._build_output_records(row, chunk)
+
+            dat_file = os.path.join(self.output_dir_dat, f"{filename}.dat")
+            xlsx_file = os.path.join(self.output_dir_xlsx, f"{filename}.xlsx")
+            self._write_records(records, dat_file, xlsx_file)
 
     def run(self):
         """Read the parent file and generate child absence files."""

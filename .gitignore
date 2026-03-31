@@ -1,2 +1,17 @@
+# Folders
 input/
 output/
+.venv/
+__pycache__/
+
+# IDE
+.idea/
+
+# macOS
+.DS_Store
+
+# PyInstaller
+*.exe
+*.spec
+dist/
+build/
