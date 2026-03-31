@@ -3,6 +3,7 @@ input/
 output/
 .venv/
 __pycache__/
+partial_absence_windows/
 
 # IDE
 .idea/

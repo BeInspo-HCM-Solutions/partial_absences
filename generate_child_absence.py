@@ -78,6 +78,9 @@ class AbsenceProcessor:
         row_seq = 1
 
         while current_date <= end_date:
+            if current_date.weekday() >= 5:  # skip Saturday and Sunday
+                current_date += timedelta(days=1)
+                continue
             child_rows.append({
                 "METADATA": row["METADATA"],
                 "PersonAbsenceEntryDetail": "PersonAbsenceEntryDetail",
@@ -119,7 +122,7 @@ class AbsenceProcessor:
         def clean(v):
             return "" if str(v) == "nan" else str(v)
 
-        with open(dat_file, "w") as f:
+        with open(dat_file, "w", newline="\r\n") as f:
             for record in records:
                 f.write("|".join(clean(v) for v in record) + "\n")
         print(f"Saved {dat_file}")
