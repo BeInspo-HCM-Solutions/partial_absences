@@ -4,6 +4,7 @@ output/
 .venv/
 __pycache__/
 partial_absence_windows/
+partial_absence_windows.zip
 
 # IDE
 .idea/
